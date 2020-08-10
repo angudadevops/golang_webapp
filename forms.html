@@ -1,0 +1,22 @@
+<!-- forms.html -->
+{{if .Success}}
+    <h1>Email Sent</h1>
+{{else}}
+    <h1>Contact Email</h1>
+    <b>NOTE: This contact page only works with Gmail, Make sure <a href="https://myaccount.google.com/lesssecureapps">LessSecureApps</a> ON</b>
+    <br>    
+    <p></p>
+    <form method="POST">
+        <label>From Email:</label><br />
+        <input type="text" name="femail"><br />
+        <label>From Email Password:</label><br />
+        <input type="password" name="epass"><br />
+        <label>To Email:</label><br />
+        <input type="text" name="temail"><br />
+        <label>Subject:</label><br />
+        <input type="text" name="subject"><br />
+        <label>Message:</label><br />
+        <textarea name="message"></textarea><br />
+        <input type="submit">
+    </form>
+{{end}}
