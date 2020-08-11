@@ -22,7 +22,7 @@ If you don't have go environment, you can use docker to use this application
 
 Run the below command to access the web application 
 ```
-sudo docker run -d --name goweb -p 80:8080 anguda/golang:web-app1
+sudo docker run -d --name goweb -p 80:8080 anguda/golang:mail
 ```
 
 Access application from your browser with below url
