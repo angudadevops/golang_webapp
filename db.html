@@ -1,0 +1,6 @@
+<h1>{{.PageTitle}}</h1>
+<ul>
+    {{range $index, $va := .Users}}
+        <li class="done">{{$va}}</li>
+    {{end}}
+</ul>

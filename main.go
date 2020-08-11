@@ -1,81 +1,113 @@
-// forms.go
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
-	"net/smtp"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-type ContactDetails struct {
-	FEmail        string
-	EmailPassword string
-	TEmail        string
-	Subject       string
-	Message       string
+type userinfo struct {
+	fname string
+	lname string
+}
+
+func redirect(w http.ResponseWriter, r *http.Request) {
+
+	http.Redirect(w, r, "/users", 302)
 }
 
 func main() {
-	tmpl := template.Must(template.ParseFiles("forms.html"))
-
+	tmpl := template.Must(template.ParseFiles("users.html"))
+	mux := http.NewServeMux()
+        //mux.Handler(r)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			tmpl.Execute(w, nil)
 			return
 		}
+		if r.Method == "POST" {
+			//mux := http.NewServeMux()
+			//mux.Handler(r)
+			mux.HandleFunc("/users", redirect)
+			tmpl1 := template.Must(template.ParseFiles("db.html"))
+			if r.Method != http.MethodPost {
+				tmpl1.Execute(w, nil)
+				return
+			}
+			//tmpl.Execute(w, struct{ users []user }{users})
 
-		details := ContactDetails{
-			FEmail:        r.FormValue("femail"),
-			EmailPassword: r.FormValue("epass"),
-			TEmail:        r.FormValue("temail"),
-			Subject:       r.FormValue("subject"),
-			Message:       r.FormValue("message"),
+			details := userinfo{
+				fname: r.FormValue("fname"),
+				lname: r.FormValue("lname"),
+			}
+			db, err := sql.Open("mysql", "root:root@(mysql:3306)/test_db?parseTime=true")
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			if err := db.Ping(); err != nil {
+				log.Fatal(err)
+				return
+			}
+			if db != nil {
+				fmt.Println("Connected to MySQL DB")
+			}
+
+			firstname := details.fname
+			lastname := details.lname
+
+			result, err := db.Exec(`INSERT INTO MyUsers (firstname, lastname) VALUES (?, ?)`, firstname, lastname)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			id, err := result.LastInsertId()
+			fmt.Println(id)
+
+			type user struct {
+				firstname string
+				lastname  string
+			}
+			//query := `SELECT * FROM MyUsers`
+			rows, err := db.Query(`SELECT * FROM MyUsers`)
+			if err != nil {
+				log.Fatal(err)
+				//return
+			}
+			defer rows.Close()
+
+			var users []user
+			for rows.Next() {
+				var u user
+
+				err := rows.Scan(&u.firstname, &u.lastname)
+				if err != nil {
+					log.Fatal(err)
+				}
+				users = append(users, u)
+			}
+			if err := rows.Err(); err != nil {
+				log.Fatal(err)
+			}
+
+			type TodoPageData struct {
+				PageTitle string
+				Users     []user
+			}
+			data := TodoPageData{
+				PageTitle: "My SQL DB Users list",
+				Users:     users,
+			}
+			fmt.Printf("%q\n", users)
+			tmpl1.Execute(w, data)
+
+			//tmpl.Execute(w, struct{ Success bool }{true})
 		}
-
-		// do something with details
-		_ = details
-
-		// Address URI to smtp server
-		// Sender data.
-		from := details.FEmail
-		password := details.EmailPassword
-		// Receiver email address.
-		to := []string{details.TEmail}
-		// smtp server configuration.
-		smtpServer := smtpServer{host: "smtp.gmail.com", port: "587"}
-		// Message.
-		//message := []byte("This is a really unimaginative message, I know.")
-		message := []byte("To: " + details.TEmail +
-			"\r\n" +
-			"Subject: " + details.Subject +
-			"\r\n" +
-			details.Message)
-		//m := "Subject: discount Gophers!\r\n"
-		//copy(message[:], details.Message)
-		fmt.Printf("%q\n", message)
-		// Authentication.
-		auth := smtp.PlainAuth(from, from, password, smtpServer.host)
-		// Sending email.
-		err := smtp.SendMail(smtpServer.Address(), auth, from, to, message)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println("Email Sent!")
-
-		tmpl.Execute(w, struct{ Success bool }{true})
 	})
-
 	http.ListenAndServe(":8080", nil)
-}
-
-type smtpServer struct {
-	host string
-	port string
-}
-
-func (s *smtpServer) Address() string {
-	return s.host + ":" + s.port
 }
 
